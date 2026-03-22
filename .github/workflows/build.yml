@@ -1,0 +1,37 @@
+name: Firmware Build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Install arm-none-eabi toolchain
+        run: sudo apt-get install -y gcc-arm-none-eabi binutils-arm-none-eabi
+
+      - name: Build firmware (release)
+        run: make -C Firmware/ DEBUG=0 OPT=-O2
+
+      - name: Upload firmware artefacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: firmware
+          path: |
+            Firmware/build/Firmware.elf
+            Firmware/build/Firmware.hex
+            Firmware/build/Firmware.bin
+          retention-days: 90
