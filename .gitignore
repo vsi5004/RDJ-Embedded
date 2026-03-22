@@ -1,0 +1,14 @@
+# Test build outputs
+Firmware/test/build/
+
+# STM32CubeIDE / IDE artefacts
+.settings/
+.cproject
+.project
+*.launch
+Debug/
+Release/
+
+# OS
+.DS_Store
+Thumbs.db

@@ -1,0 +1,89 @@
+# Host-side unit test build (x86, gcc)
+# Usage:
+#   make              — build and run all test suites
+#   make test_tmc5160 — build single suite
+#   make clean        — remove build artefacts
+#   make unity        — download Unity if not present
+
+CC      := gcc
+CFLAGS  := -Wall -Wextra -std=c11 -g \
+           -DUNIT_TEST \
+           -I../App/hal \
+           -I../App/drv \
+           -I../App/app \
+           -Imocks \
+           -Iunity
+
+BUILD   := build
+UNITY_C := unity/unity.c
+MOCKS_C := mocks/mock_spi.c \
+           mocks/mock_i2c.c \
+           mocks/mock_adc.c \
+           mocks/mock_pwm.c \
+           mocks/mock_gpio.c \
+           mocks/mock_can.c
+
+# -----------------------------------------------------------------------
+# Test suites — add an entry here for each new phase
+# -----------------------------------------------------------------------
+SUITES := test_tmc5160
+
+BINS := $(addprefix $(BUILD)/, $(SUITES))
+
+.PHONY: all clean unity $(SUITES)
+
+all: unity $(BINS)
+	@echo ""
+	@echo "=== Running all test suites ==="
+	@failed=0; \
+	for bin in $(BINS); do \
+	    echo ""; \
+	    echo "--- $$bin ---"; \
+	    ./$$bin || failed=1; \
+	done; \
+	echo ""; \
+	[ $$failed -eq 0 ] && echo "All tests passed." || (echo "SOME TESTS FAILED" && exit 1)
+
+$(BUILD):
+	mkdir -p $(BUILD)
+
+# -----------------------------------------------------------------------
+# Per-suite build rules
+# -----------------------------------------------------------------------
+
+$(BUILD)/test_tmc5160: test_tmc5160.c \
+                        ../App/drv/drv_tmc5160.c \
+                        $(MOCKS_C) $(UNITY_C) | $(BUILD)
+	$(CC) $(CFLAGS) $^ -o $@
+
+# -----------------------------------------------------------------------
+# Run individual suite
+# -----------------------------------------------------------------------
+
+$(SUITES): %: $(BUILD)/%
+	./$<
+
+# -----------------------------------------------------------------------
+# Unity — download from GitHub if not present
+# -----------------------------------------------------------------------
+
+UNITY_URL := https://raw.githubusercontent.com/ThrowTheSwitch/Unity/master/src
+
+unity: unity/unity.c unity/unity.h unity/unity_internals.h
+
+unity/unity.c:
+	mkdir -p unity
+	curl -fsSL $(UNITY_URL)/unity.c -o unity/unity.c
+
+unity/unity.h:
+	mkdir -p unity
+	curl -fsSL $(UNITY_URL)/unity.h -o unity/unity.h
+
+unity/unity_internals.h:
+	mkdir -p unity
+	curl -fsSL $(UNITY_URL)/unity_internals.h -o unity/unity_internals.h
+
+# -----------------------------------------------------------------------
+
+clean:
+	rm -rf $(BUILD)
