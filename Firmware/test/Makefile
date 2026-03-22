@@ -26,7 +26,8 @@ MOCKS_C := mocks/mock_spi.c \
 # -----------------------------------------------------------------------
 # Test suites — add an entry here for each new phase
 # -----------------------------------------------------------------------
-SUITES := test_tmc5160
+SUITES := test_tmc5160 \
+          test_canopen_pdo
 
 BINS := $(addprefix $(BUILD)/, $(SUITES))
 
@@ -62,6 +63,12 @@ $(BUILD):
 $(BUILD)/test_tmc5160: test_tmc5160.c \
                         ../App/drv/drv_tmc5160.c \
                         $(MOCKS_C) $(UNITY_C) | $(BUILD)
+	$(CC) $(CFLAGS) $^ -o $@
+
+$(BUILD)/test_canopen_pdo: test_canopen_pdo.c \
+                            ../App/app/app_canopen.c \
+                            ../App/drv/drv_tmc5160.c \
+                            $(MOCKS_C) $(UNITY_C) | $(BUILD)
 	$(CC) $(CFLAGS) $^ -o $@
 
 # -----------------------------------------------------------------------
