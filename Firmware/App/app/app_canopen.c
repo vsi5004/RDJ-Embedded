@@ -1,5 +1,6 @@
 #include "app_canopen.h"
 #include "drv_tmc5160.h"
+#include "hal_can.h"
 #include <string.h>
 
 /* -------------------------------------------------------------------------
@@ -18,6 +19,8 @@ static rpdo_shadow_t          s_rpdo;
 static canopen_tpdo_stepper_t s_tpdo;
 static uint8_t                s_status_word;
 static uint16_t               s_tof_mm;
+static hal_can_t             *s_can;
+static uint8_t                s_node_id;
 
 /* -------------------------------------------------------------------------
  * Lifecycle
@@ -29,6 +32,8 @@ void canopen_init(void)
     memset(&s_tpdo, 0, sizeof(s_tpdo));
     s_status_word = 0;
     s_tof_mm      = 0;
+    s_can         = NULL;
+    s_node_id     = 0;
 }
 
 /* -------------------------------------------------------------------------
@@ -90,15 +95,18 @@ void canopen_sync_process(void)
         if (s_rpdo.ctrl_word & CANOPEN_CTRL_CLEAR_FAULT) {
             s_status_word &= ~CANOPEN_STATUS_FAULT;
         }
-        if (s_rpdo.ctrl_word & CANOPEN_CTRL_ENABLE) {
-            tmc5160_enable();
+
+        if (!(s_status_word & CANOPEN_STATUS_FAULT)) {
+            if (s_rpdo.ctrl_word & CANOPEN_CTRL_ENABLE) {
+                tmc5160_enable();
+            }
+
+            uint32_t vel = (s_rpdo.ctrl_word & CANOPEN_CTRL_HALT) ? 0u : s_rpdo.max_vel;
+
+            tmc5160_set_rampmode(s_rpdo.ramp_mode);
+            tmc5160_set_velocity(vel);
+            tmc5160_set_target(s_rpdo.target_pos);
         }
-
-        uint32_t vel = (s_rpdo.ctrl_word & CANOPEN_CTRL_HALT) ? 0u : s_rpdo.max_vel;
-
-        tmc5160_set_rampmode(s_rpdo.ramp_mode);
-        tmc5160_set_velocity(vel);
-        tmc5160_set_target(s_rpdo.target_pos);
 
         s_rpdo.pending = false;
     }
@@ -139,4 +147,29 @@ void canopen_clear_status_bit(uint8_t mask)
 const canopen_tpdo_stepper_t *canopen_get_tpdo_stepper(void)
 {
     return &s_tpdo;
+}
+
+/* -------------------------------------------------------------------------
+ * Fault / EMCY
+ * ------------------------------------------------------------------------- */
+
+void canopen_bind_can(hal_can_t *can, uint8_t node_id)
+{
+    s_can     = can;
+    s_node_id = node_id;
+}
+
+void canopen_report_fault(uint16_t emcy_code)
+{
+    canopen_set_status_bit(CANOPEN_STATUS_FAULT);
+
+    if (s_can) {
+        uint8_t frame[8] = {
+            (uint8_t)(emcy_code & 0xFFu),
+            (uint8_t)(emcy_code >> 8),
+            0x01u,  /* error register — bit 0: generic error */
+            0, 0, 0, 0, 0,
+        };
+        s_can->transmit(0x80u + s_node_id, frame, 8);
+    }
 }

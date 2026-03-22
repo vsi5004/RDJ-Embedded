@@ -28,7 +28,8 @@ MOCKS_C := mocks/mock_spi.c \
 # -----------------------------------------------------------------------
 SUITES := test_tmc5160 \
           test_canopen_pdo \
-          test_homing
+          test_homing \
+          test_fault
 
 BINS := $(addprefix $(BUILD)/, $(SUITES))
 
@@ -60,6 +61,12 @@ $(BUILD):
 # -----------------------------------------------------------------------
 # Per-suite build rules
 # -----------------------------------------------------------------------
+
+$(BUILD)/test_fault: test_fault.c \
+                     ../App/app/app_canopen.c \
+                     ../App/drv/drv_tmc5160.c \
+                     $(MOCKS_C) $(UNITY_C) | $(BUILD)
+	$(CC) $(CFLAGS) $^ -o $@
 
 $(BUILD)/test_tmc5160: test_tmc5160.c \
                         ../App/drv/drv_tmc5160.c \
