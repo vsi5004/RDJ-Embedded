@@ -35,11 +35,17 @@ BINS := $(addprefix $(BUILD)/, $(SUITES))
 all: unity $(BINS)
 	@echo ""
 	@echo "=== Running all test suites ==="
-	@failed=0; \
+	@mkdir -p $(BUILD); \
+	failed=0; \
 	for bin in $(BINS); do \
 	    echo ""; \
 	    echo "--- $$bin ---"; \
-	    ./$$bin || failed=1; \
+	    suite=$$(basename $$bin); \
+	    ./$$bin > $(BUILD)/$${suite}.txt 2>&1; rc=$$?; \
+	    cat $(BUILD)/$${suite}.txt; \
+	    [ $$rc -eq 0 ] || failed=1; \
+	    python3 unity_to_junit.py $(BUILD)/$${suite}.xml $${suite} \
+	        < $(BUILD)/$${suite}.txt; \
 	done; \
 	echo ""; \
 	[ $$failed -eq 0 ] && echo "All tests passed." || (echo "SOME TESTS FAILED" && exit 1)
