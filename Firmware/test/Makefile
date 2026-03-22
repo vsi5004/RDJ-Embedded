@@ -41,10 +41,12 @@ all: unity $(BINS)
 	    echo ""; \
 	    echo "--- $$bin ---"; \
 	    suite=$$(basename $$bin); \
+	    t0=$$(date +%s%3N); \
 	    ./$$bin > $(BUILD)/$${suite}.txt 2>&1; rc=$$?; \
+	    t1=$$(date +%s%3N); \
 	    cat $(BUILD)/$${suite}.txt; \
 	    [ $$rc -eq 0 ] || failed=1; \
-	    python3 unity_to_junit.py $(BUILD)/$${suite}.xml $${suite} \
+	    python3 unity_to_junit.py $(BUILD)/$${suite}.xml $${suite} $$((t1 - t0)) \
 	        < $(BUILD)/$${suite}.txt; \
 	done; \
 	echo ""; \

@@ -47,13 +47,15 @@ def parse(lines):
     return tests, total, failures, ignored
 
 
-def build_xml(tests, total, failures, ignored, suite_name):
+def build_xml(tests, total, failures, ignored, suite_name, elapsed_ms=None):
+    suite_time = f'{elapsed_ms / 1000:.3f}' if elapsed_ms is not None else '0'
     suite = ET.Element('testsuite', {
         'name':     suite_name,
         'tests':    str(total or len(tests)),
         'failures': str(failures),
         'skipped':  str(ignored),
         'errors':   '0',
+        'time':     suite_time,
     })
 
     for t in tests:
@@ -62,6 +64,7 @@ def build_xml(tests, total, failures, ignored, suite_name):
             'name':      t['name'],
             'file':      t['file'],
             'line':      t['line'],
+            'time':      '0',
         })
         if t['result'] == 'FAIL':
             fail = ET.SubElement(case, 'failure', {'message': t['message']})
@@ -82,12 +85,13 @@ def main():
         print(f"Usage: {sys.argv[0]} <output.xml> [suite_name]", file=sys.stderr)
         sys.exit(1)
 
-    out_path   = sys.argv[1]
-    suite_name = sys.argv[2] if len(sys.argv) > 2 else 'unity'
+    out_path    = sys.argv[1]
+    suite_name  = sys.argv[2] if len(sys.argv) > 2 else 'unity'
+    elapsed_ms  = int(sys.argv[3]) if len(sys.argv) > 3 else None
 
     lines = sys.stdin.readlines()
     tests, total, failures, ignored = parse(lines)
-    suite = build_xml(tests, total, failures, ignored, suite_name)
+    suite = build_xml(tests, total, failures, ignored, suite_name, elapsed_ms)
 
     with open(out_path, 'w') as f:
         f.write(prettify(suite))
