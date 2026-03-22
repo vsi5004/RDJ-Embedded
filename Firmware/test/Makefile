@@ -29,7 +29,10 @@ MOCKS_C := mocks/mock_spi.c \
 SUITES := test_tmc5160 \
           test_canopen_pdo \
           test_homing \
-          test_fault
+          test_fault \
+          test_tof \
+          test_servo \
+          test_dotstar
 
 BINS := $(addprefix $(BUILD)/, $(SUITES))
 
@@ -61,6 +64,21 @@ $(BUILD):
 # -----------------------------------------------------------------------
 # Per-suite build rules
 # -----------------------------------------------------------------------
+
+$(BUILD)/test_tof: test_tof.c \
+                   ../App/drv/drv_tof.c \
+                   $(MOCKS_C) $(UNITY_C) | $(BUILD)
+	$(CC) $(CFLAGS) $^ -o $@
+
+$(BUILD)/test_servo: test_servo.c \
+                     ../App/drv/drv_servo.c \
+                     $(MOCKS_C) $(UNITY_C) | $(BUILD)
+	$(CC) $(CFLAGS) $^ -o $@
+
+$(BUILD)/test_dotstar: test_dotstar.c \
+                       ../App/drv/drv_dotstar.c \
+                       $(MOCKS_C) $(UNITY_C) | $(BUILD)
+	$(CC) $(CFLAGS) $^ -o $@
 
 $(BUILD)/test_fault: test_fault.c \
                      ../App/app/app_canopen.c \
