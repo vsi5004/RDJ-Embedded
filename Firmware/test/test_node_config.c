@@ -1,4 +1,4 @@
-/* Phase 6a — Node configuration macro tests
+/* Node configuration macro tests
  *
  * Verifies that each NODE_HAS_* macro returns the correct value for every
  * valid node ID (1–5), based on the population matrix in PCB_DESIGN.md:

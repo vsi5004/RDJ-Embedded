@@ -1,4 +1,4 @@
-/* Phase 1 — TMC5160 SPI driver tests
+/* TMC5160 SPI driver tests
  *
  * Tests are independent: each calls mock_spi_reset() in setUp().
  * No test relies on side-effects from another.

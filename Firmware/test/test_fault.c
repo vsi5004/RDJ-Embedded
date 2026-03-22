@@ -1,4 +1,4 @@
-/* Phase 4 — Fault detection, EMCY generation, and motion blocking tests
+/* Fault detection, EMCY generation, and motion blocking tests
  *
  * Tests cover:
  *   - report_fault(): sets FAULT status bit and transmits an EMCY frame

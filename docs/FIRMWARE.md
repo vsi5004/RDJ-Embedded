@@ -52,7 +52,8 @@ firmware/
 │   │   ├── hal_gpio.h
 │   │   ├── hal_gpio_stm32.c
 │   │   ├── hal_can.h
-│   │   └── hal_can_stm32.c
+│   │   ├── hal_can_stm32.c
+│   │   └── hal_flash.h
 │   ├── drv/                     # Drivers — pure logic, testable on host
 │   │   ├── drv_tmc5160.c        # SPI register r/w, ramp config, StallGuard
 │   │   ├── drv_tmc5160.h
@@ -61,8 +62,7 @@ firmware/
 │   │   ├── drv_servo.c          # PWM pulse width control
 │   │   ├── drv_servo.h
 │   │   ├── drv_dotstar.c        # SPI2 LED frame output
-│   │   ├── drv_dotstar.h
-│   │   └── drv_pot_adc.c        # ADC read + oversampling + filtering
+│   │   └── drv_dotstar.h
 │   ├── app/                     # Application logic — testable on host
 │   │   ├── app_main.c           # Super-loop, boot sequence
 │   │   ├── app_canopen.c        # OD definition, PDO callbacks, NMT hooks
@@ -89,16 +89,15 @@ firmware/
 │   │   ├── mock_pwm.c
 │   │   ├── mock_gpio.c
 │   │   └── mock_flash.c
-│   ├── test_tmc5160.c           # TMC5160 SPI driver tests (Phase 1)
-│   ├── test_canopen_pdo.c       # PDO staging + SYNC application (Phase 2)
-│   ├── test_homing.c            # Per-axis homing state machine (Phase 3)
-│   ├── test_fault.c             # Fault detection and EMCY (Phase 4)
-│   ├── test_tof.c               # ToF sensor I2C tests (Phase 5)
-│   ├── test_servo.c             # Servo PWM tests (Phase 5)
-│   ├── test_dotstar.c           # DotStar LED tests (Phase 5)
-│   ├── test_pot_adc.c           # Potentiometer ADC tests (Phase 5)
-│   ├── test_node_config.c       # Node ID mapping tests (Phase 6)
-│   ├── test_flash.c             # Flash double-buffer tests (Phase 6)
+│   ├── test_tmc5160.c           # TMC5160 SPI driver tests
+│   ├── test_canopen_pdo.c       # PDO staging + SYNC application tests
+│   ├── test_homing.c            # Homing state machine tests
+│   ├── test_fault.c             # Fault detection and EMCY tests
+│   ├── test_tof.c               # ToF sensor I2C tests
+│   ├── test_servo.c             # Servo PWM tests
+│   ├── test_dotstar.c           # DotStar LED tests
+│   ├── test_node_config.c       # Node ID mapping tests
+│   ├── test_flash.c             # Flash double-buffer tests
 │   └── Makefile                 # Builds and runs all tests on host
 ├── Makefile                     # Target build (arm-none-eabi-gcc)
 └── vinyl_robot.ioc              # STM32CubeMX project
@@ -277,7 +276,7 @@ void tmc5160_set_rampmode(uint8_t mode);     // 0=position, 1=velocity+, 2=veloc
 
 // Read status
 int32_t tmc5160_get_position(void);          // Read XACTUAL
-uint8_t tmc5160_get_rampstat(void);          // Read RAMPSTAT
+uint32_t tmc5160_get_rampstat(void);         // Read RAMPSTAT
 uint16_t tmc5160_get_stallguard(void);       // Read SG_RESULT
 
 // Motor control

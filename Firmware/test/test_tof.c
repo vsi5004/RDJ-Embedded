@@ -1,4 +1,4 @@
-/* Phase 5 — VL53L4CD Time-of-Flight driver tests
+/* VL53L4CD Time-of-Flight driver tests
  *
  * Tests cover:
  *   - init(): writes to the correct I2C address

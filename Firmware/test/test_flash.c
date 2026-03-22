@@ -1,4 +1,4 @@
-/* Phase 6b — Double-buffer flash config driver tests
+/* Double-buffer flash config driver tests
  *
  * Tests cover:
  *   - Load from blank flash: uses hardcoded defaults, returns false

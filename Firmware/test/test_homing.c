@@ -1,4 +1,4 @@
-/* Phase 3 — Homing state machine tests
+/* Homing state machine tests
  *
  * Tests cover:
  *   - IDLE: tick before start() is a no-op

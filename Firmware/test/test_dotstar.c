@@ -1,4 +1,4 @@
-/* Phase 5 — APA102 / DotStar LED driver tests
+/* APA102 / DotStar LED driver tests
  *
  * Tests cover frame format:
  *   - Start frame : 4 × 0x00 (one 4-byte SPI transfer)

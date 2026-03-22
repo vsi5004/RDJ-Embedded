@@ -81,11 +81,13 @@ uint32_t tmc5160_read(uint8_t reg)
     uint8_t tx[5] = { (uint8_t)(reg & 0x7F), 0, 0, 0, 0 };
     uint8_t rx[5] = { 0 };
 
-    /* First transaction: send read address, discard response */
+    /* First transaction: send read address, discard response (contains
+     * the previously-addressed register, not reg). */
     s_spi->transfer(tx, rx, 5);
 
-    /* Second transaction: clock out the actual register value */
-    tx[0] = (uint8_t)(reg & 0x7F);
+    /* Second transaction: resend the same address to clock out reg's value.
+     * The chip ignores the address on this cycle — any 5 bytes would work —
+     * but repeating the address keeps the protocol explicit. */
     s_spi->transfer(tx, rx, 5);
 
     return ((uint32_t)rx[1] << 24)

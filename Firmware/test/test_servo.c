@@ -1,4 +1,4 @@
-/* Phase 5 — RC servo PWM driver tests
+/* RC servo PWM driver tests
  *
  * Tests cover:
  *   - Pass-through: valid pulse widths in [500, 2500] μs reach the PWM HAL

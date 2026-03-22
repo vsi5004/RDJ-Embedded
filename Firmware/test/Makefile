@@ -25,7 +25,7 @@ MOCKS_C := mocks/mock_spi.c \
            mocks/mock_flash.c
 
 # -----------------------------------------------------------------------
-# Test suites — add an entry here for each new phase
+# Test suites — add an entry here for each new module
 # -----------------------------------------------------------------------
 SUITES := test_tmc5160 \
           test_canopen_pdo \

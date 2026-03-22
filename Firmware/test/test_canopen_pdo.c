@@ -1,4 +1,4 @@
-/* Phase 2 — CANopen PDO staging / SYNC application tests
+/* CANopen PDO staging / SYNC application tests
  *
  * Tests cover:
  *   - RPDO staging: values buffered, NOT written to TMC5160 until SYNC
