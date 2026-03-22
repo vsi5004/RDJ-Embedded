@@ -21,7 +21,8 @@ MOCKS_C := mocks/mock_spi.c \
            mocks/mock_adc.c \
            mocks/mock_pwm.c \
            mocks/mock_gpio.c \
-           mocks/mock_can.c
+           mocks/mock_can.c \
+           mocks/mock_flash.c
 
 # -----------------------------------------------------------------------
 # Test suites — add an entry here for each new phase
@@ -32,7 +33,9 @@ SUITES := test_tmc5160 \
           test_fault \
           test_tof \
           test_servo \
-          test_dotstar
+          test_dotstar \
+          test_node_config \
+          test_flash
 
 BINS := $(addprefix $(BUILD)/, $(SUITES))
 
@@ -64,6 +67,15 @@ $(BUILD):
 # -----------------------------------------------------------------------
 # Per-suite build rules
 # -----------------------------------------------------------------------
+
+$(BUILD)/test_node_config: test_node_config.c \
+                            $(MOCKS_C) $(UNITY_C) | $(BUILD)
+	$(CC) $(CFLAGS) $^ -o $@
+
+$(BUILD)/test_flash: test_flash.c \
+                     ../App/app/cfg_flash.c \
+                     $(MOCKS_C) $(UNITY_C) | $(BUILD)
+	$(CC) $(CFLAGS) $^ -o $@
 
 $(BUILD)/test_tof: test_tof.c \
                    ../App/drv/drv_tof.c \
