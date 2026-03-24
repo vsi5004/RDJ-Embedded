@@ -42,14 +42,25 @@ typedef struct {
 /* -------------------------------------------------------------------------
  * Lifecycle
  * Must be called after tmc5160_init() on stepper nodes.
+ * Call canopen_set_cfg_dmax() after canopen_init() to enable per-waypoint
+ * DMAX scaling via RPDO byte 7 bits [7:2] (dmax_factor field).
  * ------------------------------------------------------------------------- */
 void canopen_init(void);
+
+/* Store the node's configured DMAX so it can be scaled per-waypoint.
+ * Must be called with the same dmax value passed to tmc5160_init(). */
+void canopen_set_cfg_dmax(uint16_t dmax);
 
 /* -------------------------------------------------------------------------
  * RPDO interface
  * Call from the CANopenNode OD write callback when RPDO1 is received.
  * Values are buffered — NOT applied until canopen_sync_process().
  * ------------------------------------------------------------------------- */
+/* ramp_mode byte layout (OD 0x2108):
+ *   bits [1:0] — ramp mode (0=position, 1=velocity+, 2=velocity-)
+ *   bits [7:2] — dmax_factor (0 = use cfg DMAX; 1-63 = factor/64 * DMAX)
+ *   dmax_factor only applied in position mode; ignored in velocity modes.
+ */
 void canopen_stepper_rpdo_write(int32_t  target_pos,
                                 uint32_t max_vel,
                                 uint8_t  ctrl_word,

@@ -7,6 +7,7 @@
  *   - Status word: MOVING and IN_POSITION derived from RAMPSTAT
  *   - Control word: ENABLE, HALT, CLEAR_FAULT actions
  *   - Status word API: set/clear bit helpers
+ *   - DMAX factor: per-waypoint deceleration scaling via RPDO byte 7 bits [7:2]
  *
  * Each test calls setUp() which resets the mock SPI, re-inits both the
  * TMC5160 driver and the CANopen module, then clears the SPI log so
@@ -35,6 +36,7 @@ void setUp(void)
     tmc5160_init(&mock_hal_spi, &CFG);
     mock_spi_reset();   /* clear init traffic — tests start from a clean log */
     canopen_init();
+    canopen_set_cfg_dmax(CFG.dmax);
 }
 
 void tearDown(void) {}
@@ -350,6 +352,76 @@ void test_clear_status_bit_does_not_affect_others(void)
 }
 
 /* =========================================================================
+ * Group 7: DMAX factor — per-waypoint deceleration scaling
+ *
+ * RPDO byte 7 bitfield:
+ *   bits [1:0] = ramp_mode (0=pos, 1=vel+, 2=vel-)
+ *   bits [7:2] = dmax_factor (0=use cfg DMAX; 1-63 = factor/64 * DMAX)
+ * ========================================================================= */
+
+void test_dmax_factor_zero_restores_cfg_dmax(void)
+{
+    /* dmax_factor=0 (bits [7:2]=0) in position mode → write TMC5160_REG_DMAX = CFG.dmax */
+    canopen_stepper_rpdo_write(1000, 80000, 0, TMC5160_RAMPMODE_POSITION /* = 0x00 */);
+    canopen_sync_process();
+
+    int idx = find_write(TMC5160_REG_DMAX);
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(-1, idx, "DMAX not written");
+    TEST_ASSERT_EQUAL_UINT32(CFG.dmax, logged_data(idx));
+}
+
+void test_dmax_factor_4_scales_dmax(void)
+{
+    /* dmax_factor=4 (bits [7:2]=4 → byte = 0x10 | 0x00 = 0x10) in position mode
+     * Expected DMAX = CFG.dmax * 4 / 64 = 500 * 4 / 64 = 31 */
+    uint8_t ramp_byte = (4U << 2) | TMC5160_RAMPMODE_POSITION;   /* 0x10 */
+    canopen_stepper_rpdo_write(1000, 80000, 0, ramp_byte);
+    canopen_sync_process();
+
+    int idx = find_write(TMC5160_REG_DMAX);
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(-1, idx, "DMAX not written");
+    TEST_ASSERT_EQUAL_UINT32(31U, logged_data(idx));
+}
+
+void test_dmax_factor_clamped_to_minimum_one(void)
+{
+    /* dmax_factor=1 → DMAX = MAX(1, 500*1/64) = MAX(1, 7) = 7 */
+    uint8_t ramp_byte = (1U << 2) | TMC5160_RAMPMODE_POSITION;
+    canopen_stepper_rpdo_write(1000, 80000, 0, ramp_byte);
+    canopen_sync_process();
+
+    int idx = find_write(TMC5160_REG_DMAX);
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(-1, idx, "DMAX not written");
+    TEST_ASSERT_EQUAL_UINT32(7U, logged_data(idx));
+}
+
+void test_dmax_factor_ignored_in_velocity_mode(void)
+{
+    /* dmax_factor=4 in velocity+ mode → no DMAX write */
+    uint8_t ramp_byte = (4U << 2) | TMC5160_RAMPMODE_VEL_POS;
+    canopen_stepper_rpdo_write(1000, 80000, 0, ramp_byte);
+    canopen_sync_process();
+
+    TEST_ASSERT_EQUAL_INT_MESSAGE(-1, find_write(TMC5160_REG_DMAX),
+                                  "DMAX must not be written in velocity mode");
+}
+
+void test_dmax_factor_rampmode_bits_extracted_correctly(void)
+{
+    /* Combined byte: dmax_factor=3 (bits [7:2]), ramp_mode=vel_neg (bits [1:0]=2)
+     * → RAMPMODE should be 2 (vel-), DMAX should NOT be written (velocity mode) */
+    uint8_t ramp_byte = (3U << 2) | TMC5160_RAMPMODE_VEL_NEG;
+    canopen_stepper_rpdo_write(0, 80000, 0, ramp_byte);
+    canopen_sync_process();
+
+    int rm_idx = find_write(TMC5160_REG_RAMPMODE);
+    TEST_ASSERT_NOT_EQUAL_MESSAGE(-1, rm_idx, "RAMPMODE not written");
+    TEST_ASSERT_EQUAL_UINT32(TMC5160_RAMPMODE_VEL_NEG, logged_data(rm_idx));
+    TEST_ASSERT_EQUAL_INT_MESSAGE(-1, find_write(TMC5160_REG_DMAX),
+                                  "DMAX must not be written in velocity mode");
+}
+
+/* =========================================================================
  * Main
  * ========================================================================= */
 
@@ -395,6 +467,13 @@ int main(void)
     RUN_TEST(test_set_status_bit_does_not_clear_others);
     RUN_TEST(test_clear_status_bit_clears_bit);
     RUN_TEST(test_clear_status_bit_does_not_affect_others);
+
+    /* DMAX factor */
+    RUN_TEST(test_dmax_factor_zero_restores_cfg_dmax);
+    RUN_TEST(test_dmax_factor_4_scales_dmax);
+    RUN_TEST(test_dmax_factor_clamped_to_minimum_one);
+    RUN_TEST(test_dmax_factor_ignored_in_velocity_mode);
+    RUN_TEST(test_dmax_factor_rampmode_bits_extracted_correctly);
 
     return UNITY_END();
 }

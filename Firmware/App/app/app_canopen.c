@@ -21,6 +21,7 @@ static uint8_t                s_status_word;
 static uint16_t               s_tof_mm;
 static hal_can_t             *s_can;
 static uint8_t                s_node_id;
+static uint16_t               s_cfg_dmax;   /* configured DMAX; set via canopen_set_cfg_dmax() */
 
 /* -------------------------------------------------------------------------
  * Lifecycle
@@ -34,6 +35,12 @@ void canopen_init(void)
     s_tof_mm      = 0;
     s_can         = NULL;
     s_node_id     = 0;
+    s_cfg_dmax    = 0;
+}
+
+void canopen_set_cfg_dmax(uint16_t dmax)
+{
+    s_cfg_dmax = dmax;
 }
 
 /* -------------------------------------------------------------------------
@@ -103,7 +110,26 @@ void canopen_sync_process(void)
 
             uint32_t vel = (s_rpdo.ctrl_word & CANOPEN_CTRL_HALT) ? 0u : s_rpdo.max_vel;
 
-            tmc5160_set_rampmode(s_rpdo.ramp_mode);
+            /* Decode RPDO byte 7 bitfield:
+             *   bits [1:0] = ramp_mode (0=pos, 1=vel+, 2=vel-)
+             *   bits [7:2] = dmax_factor (0=use cfg DMAX; 1-63 = factor/64 * DMAX)
+             */
+            uint8_t  ramp_mode_val = s_rpdo.ramp_mode & 0x03U;
+            uint8_t  dmax_factor   = (s_rpdo.ramp_mode >> 2U) & 0x3FU;
+
+            /* Apply scaled DMAX in position mode only; skip during velocity mode */
+            if (ramp_mode_val == TMC5160_RAMPMODE_POSITION && dmax_factor > 0U) {
+                uint32_t dmax = (s_cfg_dmax > 0U)
+                    ? ((uint32_t)s_cfg_dmax * dmax_factor) / 64U
+                    : 0U;
+                if (dmax < 1U) { dmax = 1U; }
+                tmc5160_write(TMC5160_REG_DMAX, dmax);
+            } else if (ramp_mode_val == TMC5160_RAMPMODE_POSITION) {
+                /* dmax_factor == 0: restore configured DMAX */
+                tmc5160_write(TMC5160_REG_DMAX, s_cfg_dmax);
+            }
+
+            tmc5160_set_rampmode(ramp_mode_val);
             tmc5160_set_velocity(vel);
             tmc5160_set_target(s_rpdo.target_pos);
         }

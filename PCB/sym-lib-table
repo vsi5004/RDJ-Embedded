@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "XT30PW_2_2_-M.G.B") (type "KiCad") (uri "${KIPRJMOD}/Components/XT30PW_2_2_-M.G.B.kicad_sym") (options "") (descr ""))
+)

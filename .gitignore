@@ -9,6 +9,11 @@ Firmware/test/build/
 Debug/
 Release/
 
+# KiCad
+PCB/.history/
+PCB/*-backups/
+*.bak
+
 # OS
 .DS_Store
 Thumbs.db
